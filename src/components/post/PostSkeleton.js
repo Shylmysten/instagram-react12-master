@@ -1,6 +1,6 @@
-import { useMediaQuery } from "@material-ui/core";
 import React from "react";
 import { usePostSkeletonStyles } from "../../styles";
+import { useMediaQuery } from "@material-ui/core";
 
 
 export function PostSkeleton() {
