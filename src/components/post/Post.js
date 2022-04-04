@@ -15,7 +15,7 @@ function Post() {
   const [showOptionsDialog, setOptionsDialog] = React.useState(false);
   const { id, media, likes, user, caption, comments } = getDefaultPost();
 
-  setTimeout(() => setLoading(false), 2000);
+  setTimeout(() => setLoading(false), 5000);
   if(loading) return <PostSkeleton />
 
   return (
