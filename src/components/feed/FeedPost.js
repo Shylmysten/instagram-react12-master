@@ -2,18 +2,26 @@ import React from "react";
 import { useFeedPostStyles } from "../../styles";
 import UserCard from "../shared/UserCard";
 import { CommentIcon, LikeIcon, MoreIcon, RemoveIcon, SaveIcon, ShareIcon, UnlikeIcon } from "../../icons";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { Button, Divider, Hidden, TextField, Typography } from "@material-ui/core";
-import HTMLEllipsis from 'react-lines-ellipsis/lib/html';
-import FollowSuggestions from '../shared/FollowSuggestions';
-import OptionsDialog from '../shared/OptionsDialog';
+import HTMLEllipsis from "react-lines-ellipsis/lib/html";
+import FollowSuggestions from "../shared/FollowSuggestions";
+import OptionsDialog from "../shared/OptionsDialog";
+import { formatDateToNow } from "../../utils/formatDate";
+import Img from "react-graceful-image";
+import { SAVE_POST, UNSAVE_POST, LIKE_POST, UNLIKE_POST, CREATE_COMMENT } from "../../graphql/mutations";
+import { GET_FEED } from "../../graphql/queries";
+import { useMutation } from "@apollo/react-hooks";
+import { UserContext } from "../../App";
 
 function FeedPost({ post, index }) {
   const classes = useFeedPostStyles();
   const [showCaption, setCaption] = React.useState();
   const [showOptionsDialog, setOptionsDialog] = React.useState(false);
-  const { id, media, likes, user, caption, comments } = post;
+  const { id, media, likes, likes_aggregate, saved_posts, location, user, caption, comments, comments_aggregate, created_at } = post;
   const showFollowSuggestions = index === 1;
+  const likesCount = likes_aggregate.aggregate.count;
+  const commentsCount = comments_aggregate.aggregate.count;
 
   return (
     <>
@@ -22,25 +30,25 @@ function FeedPost({ post, index }) {
       >
         {/* Feed Post Header */}
         <div className={classes.postHeader}>
-          <UserCard user={user}/>
+          <UserCard user={user} location={location}/>
           <MoreIcon className={classes.MoreIcon} onClick={() => setOptionsDialog(true)}/>
         </div>
         {/* Feed Post Image */}
         <div>
-          <img src={media} alt="Post media" className={classes.image} />
+          <Img src={media} alt="Post media" className={classes.image} />
         </div>
         {/* Feed Post buttons */}
         <div className={classes.postButtonsWrapper}>
           <div className={classes.postButtons}>
-              <LikeButton />
+              <LikeButton likes={likes} postId={id} authorId={user.id}/>
               <Link to={`/p/${id}`}>
                 <CommentIcon />
               </Link>
               <ShareIcon />
-              <SaveButton />
+              <SaveButton savedPosts={saved_posts} postId={id}/>
           </div>
           <Typography className={classes.likes} variant="subtitle2">
-            <span>{likes === 1 ? '1 like' : `${likes} likes`}</span>
+            <span>{likesCount === 1 ? '1 like' : `${likesCount} likes`}</span>
           </Typography>
           <div className={showCaption ? classes.expanded : classes.collapsed}>
             <Link to={`/${user.username}`}>
@@ -72,7 +80,7 @@ function FeedPost({ post, index }) {
             variant="body2"
             component="div"
             >
-              View all {comments.length} comments
+              View all {commentsCount} comments
             </Typography>
           </Link>
           {comments.map(comment => (
@@ -98,64 +106,146 @@ function FeedPost({ post, index }) {
             color="textSecondary"
             className={classes.datePosted}
           >
-            5 DAYS AGO
+            {formatDateToNow(created_at)}
           </Typography>
         </div>
         <Hidden xsDown>
             <Divider />
-            <Comment />
+            <Comment postId={id}/>
         </Hidden>
       </article>
       {showFollowSuggestions && <FollowSuggestions />}
-      {showOptionsDialog && <OptionsDialog  onClose={() => setOptionsDialog(false)}/>}
+      {showOptionsDialog && <OptionsDialog authorId={user.id} postId={id} onClose={() => setOptionsDialog(false)}/>}
     </>
   );
 }
 
-function LikeButton() {
+function LikeButton({ likes, postId, authorId }) {
   const classes = useFeedPostStyles();
-  const [liked, setLiked] = React.useState(false);
+  const { currentUserId, feedIds } = React.useContext(UserContext);
+  const isLareadyLiked = likes.some(({ user_id }) => user_id === currentUserId);
+  const [liked, setLiked] = React.useState(isLareadyLiked);
   const Icon = liked ? UnlikeIcon : LikeIcon;
   const className = liked ? classes.liked : classes.like;
   const onClick = liked ? handleUnlike : handleLike;
+  const [likePost] = useMutation(LIKE_POST);
+  const [unlikePost] = useMutation(UNLIKE_POST);
+  const variables = {
+    postId,
+    userId: currentUserId,
+    profileId: authorId
+  }
+
+  function handleUpdate(cache, result) {
+    const variables = { limit: 2, feedIds, lastTimestamp: "2022-08-20T22:37:27.563206+00:00" };
+    const data = cache.readQuery({
+      query: GET_FEED,
+      variables
+    })
+
+    const typename =result.data.insert_likes?.__typename;
+    const count = typename === "likes_mutation_response" ? 1 : -1;
+    const posts = data.posts.map(post => ({
+      ...post,
+      likes_aggregate: {
+        ...post.likes_aggregate,
+        aggregate: {
+          ...post.likes_aggregate.aggregate,
+          count: post.likes_aggregate.aggregate.count + count
+        }
+      }
+    }));
+    cache.writeQuery({ query: GET_FEED, data: { posts }});
+  }
+
 
   function handleLike() {
-    console.log('like');
+    // console.log('like');
     setLiked(true);
+    likePost({ variables, update: handleUpdate });
   }
 
   function handleUnlike() {
-    console.log('unlike');
+    // console.log('unlike');
     setLiked(false);
+    unlikePost({ variables, update: handleUpdate });
   }
 
   return <Icon className={className} onClick={onClick} />
 }
 
-function SaveButton() {
+function SaveButton({ postId, savedPosts }) {
   const classes = useFeedPostStyles();
-  const [saved, setSaved] = React.useState(false);
+  const { currentUserId } = React.useContext(UserContext);
+  const isAlreadySaved =  savedPosts.some(({ user_id }) => user_id === currentUserId );
+  const [saved, setSaved] = React.useState(isAlreadySaved);
   const Icon = saved ? RemoveIcon : SaveIcon;
   const onClick = saved ?  handleRemove : handleSave;
+  const [savePost] = useMutation(SAVE_POST);
+  const [removePost] = useMutation(UNSAVE_POST);
+  const variables = {
+    postId,
+    userId: currentUserId
+  }
 
   function handleSave() {
-    console.log('saved');
+    // console.log('saved');
     setSaved(true);
+    savePost({ variables });
   }
 
   function handleRemove() {
-    console.log('removed');
+    // console.log('removed');
     setSaved(false);
+    removePost({ variables });
   }
 
   return <Icon className={classes.saveIcon} onClick={onClick} />
 }
 
-function Comment() {
+function Comment({ postId}) {
   const classes = useFeedPostStyles();
+  const { currentUserId, feedIds } = React.useContext(UserContext);
   const [content, setContent] = React.useState('');
+  const [createComment] = useMutation(CREATE_COMMENT);
 
+  function handleUpdate(cache, result) {
+    const variables = { limit: 2, feedIds, lastTimestamp: "2022-08-20T22:37:27.563206+00:00" };
+    const data = cache.readQuery({
+      query: GET_FEED,
+      variables
+    })
+    const oldComment = result.data.insert_comments.returning[0];
+    const newComment = {
+      ...oldComment,
+      user: { ...oldComment.user }
+    }
+    const posts = data.posts.map(post => {
+      const newPost = {
+        ...post,
+        comments: [...post.comments, newComment],
+        comments_aggregate: {
+          ...post.comments_aggregate,
+          aggregate: {
+            ...post.comments_aggregate.aggregate,
+            count: post.comments_aggregate.aggregate.count + 1
+          }
+        }
+      }
+      return post.id === postId ? newPost : post;
+    })
+    cache.writeQuery({ query: GET_FEED, data: { posts }});
+    setContent('');
+  }
 
+  function handleAddComment() {
+    const variables = {
+      content,
+      postId,
+      userId: currentUserId
+    }
+    createComment({ variables, update: handleUpdate });
+  }
 
   return (
     <div className={classes.commentContainer}>
@@ -176,6 +266,7 @@ function Comment() {
         }}
       />
       <Button
+        onClick={handleAddComment}
         color="primary"
         className={classes.commentButton}
         disabled={!content.trim()}

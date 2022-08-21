@@ -53,3 +53,6 @@ Components:
 - ProfilePicture
 - Layout
 - SEO
+
+## Setting up Authentication and Authorization
+https://hasura.io/blog/authentication-and-authorization-using-hasura-and-firebase/

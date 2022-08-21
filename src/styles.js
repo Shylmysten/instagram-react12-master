@@ -607,7 +607,7 @@ export const useFeedPostStyles = makeStyles(theme => ({
     alignItems: "center"
   },
   expanded: {
-    display: "block"
+    display: "inline-block"
   },
   caption: {
     fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", Helvetica, Arial, sans-serif`,
@@ -791,18 +791,22 @@ export const usePostStyles = makeStyles(theme => ({
     }
   },
   postCaptionContainer: {
-    display: "flex",
-    margin: "0 0 auto !important",
-    order: 1,
-    overflowX: "hidden",
-    flexGrow: 1,
-    overflow: "hidden",
-    [theme.breakpoints.only("xs")]: {
-      display: "none !important"
-    }
+    // display: "flex",
+    // margin: "0 0 auto !important",
+    // order: 1,
+    // overflowX: "hidden",
+    // flexGrow: 1,
+    // overflow: "hidden",
+    // [theme.breakpoints.only("xs")]: {
+    //   display: "none !important"
+    // }
+    overflowY: 'auto',
+    padding: "1rem",
+    height: "100%"
   },
   postCaption: {
-    overflowY: "scroll",
+    flex: 1,
+    overflowY: "auto",
     paddingLeft: "24px",
     paddingRight: "24px",
     paddingTop: "5px"
@@ -1594,6 +1598,8 @@ export const useProfileTabsStyles = makeStyles(theme => {
       width: 18
     },
     profilePostsSection: {
+      display: 'flex',
+      justifyContent: 'center',
       paddingTop: 60
     },
     noPicDivAlt: {
@@ -1707,3 +1713,54 @@ export const useMorePostsFromUserStyles = makeStyles(theme => ({
     }
   }
 }));
+
+export const useAddPostDialogStyles = makeStyles(theme => ({
+  appbar: {
+      position: 'relative',
+      background: '#fff !important',
+      color: 'black !important',
+      display: 'flex',
+      justifyContent: 'space-between',
+      height: '54px !important',
+  },
+  toolbar: {
+      minHeight: '54px !important',
+  },
+  title: {
+      flex: 1,
+      fontWeight: 600
+  },
+  paper: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      '& > *': {
+          margin: theme.spacing(1)
+      }
+  },
+  editor: {
+      flex: 1
+  },
+  avatarLarge: {
+      width: theme.spacing(7),
+      height: theme.spacing(7)
+  },
+  input: {
+      padding: '10px !important',
+      fontSize: '14px !important'
+  },
+  root: {
+      border: '1px solid #e6e6e6',
+      marginTop: '10px !important'
+  },
+  underline: {
+      '&::before': {
+          border: 'none !important'
+      },
+      '&::after': {
+          border: 'none !important'
+      },
+      '&::hover&before': {
+          border: 'none !important'
+      },
+  }
+}))
