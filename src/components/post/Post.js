@@ -32,7 +32,7 @@ function Post({ postId }) {
     likes, 
     likes_aggregate,
     saved_posts,
-    user_id,
+    // user_id,
     location,
     user, 
     caption, 
