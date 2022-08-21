@@ -43,7 +43,7 @@ function FeedPage() {
 
 
   // let loading = false;
-  if(loading) return <LoadingScreen />;
+  if(loading || !me) return <LoadingScreen />;
 
   return (
     <Layout>
