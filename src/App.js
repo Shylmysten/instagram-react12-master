@@ -54,7 +54,7 @@ function App() {
   const currentUserId = me?.id;
   const followingIds = me?.following.map(({ user }) =>  user.id);
   const followerIds = me?.followers.map(({ user }) =>  user.id);
-  const feedIds = [...followingIds, currentUserId];
+  const feedIds = followingIds && followingIds.length > 0 ? [...followingIds, currentUserId] : [[], currentUserId];
   // console our followingFeedIds
 // console.log(followingIds)
   return (
